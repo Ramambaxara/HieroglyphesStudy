@@ -68,9 +68,11 @@ class HieroglyphesTest(QWidget):
 
         self.__soundButton = QPushButton('X')
         self.__soundButton.clicked.connect(self.onSound)
+        self.__soundButton.setShortcut('s')
 
         self.__nextButton = QPushButton(self.__currentButtonText())
         self.__nextButton.clicked.connect(self.onNext)
+        self.__nextButton.setShortcut('n')
 
         layout = QGridLayout()
         topMostLayout = QGridLayout()
@@ -98,12 +100,14 @@ class HieroglyphesTest(QWidget):
 
     def __changeSound(self):
         self.__soundButton.setText(self.__currentCard.getTranscription())
+        self.__soundButton.setShortcut('s')
         self.__currentSoundPath = self.__currentCard.getSoundPath()
 
     def onNext(self):
         if self.__state == 0:
             self.__count = self.__count + 1
             self.__nextButton.setText(self.__currentButtonText())
+            self.__nextButton.setShortcut('n')
             self.__meaningLabel.clear()
             self.__imageLabel.clear()
             self.__soundButton.setText('X')
