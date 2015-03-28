@@ -28,12 +28,23 @@ Rectangle {
     property variant firstLineY: 10
     property variant tab: 10 
 
+    Keys.onPressed: {
+        if (event.key == Qt.Key_S) {
+            soundButton.clicked()
+        }
+
+        if (event.key == Qt.Key_N) {
+            nextButton.clicked()
+        }
+    }
+    Keys.onSpacePressed: nextButton.clicked()
+    focus: true
+
     Text {
         id: translateText
         y: page.firstLineY
         x: page.tab
         font.pointSize: 20
-        text: "Country"
     }
 
     Button {
@@ -43,7 +54,6 @@ Rectangle {
         y: page.firstLineY
         x: page.width - page.tab - width
         onClicked: pushSound()
-        text: "shuǐ"
     }
 
     Image {
@@ -52,8 +62,6 @@ Rectangle {
         y: 20
         anchors.horizontalCenter: page.horizontalCenter
         fillMode: Image.PreserveAspectFit
-
-        source: "/home/ramamba/Projects/fun_with_python/study_chinese/picts/country.gif"
     }
 
     Button {
