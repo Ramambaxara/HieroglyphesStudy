@@ -1,35 +1,26 @@
 from xml.etree import ElementTree
 from random import randrange
-from PyQt4.Qt import QApplication, QWidget, QLabel, QPushButton, QMessageBox
-from PyQt4.QtGui import QPixmap, QGridLayout
-from PyQt4 import QtCore
+from PyQt4.Qt import QApplication
+from PyQt4 import QtCore, QtDeclarative
 import os
 import sys
 import subprocess
 
 class HieroglyphCard:
     def __init__(self, meaning, transcription, symbolPath, soundPath):
-        self.__meaning = meaning
-        self.__imagePath = symbolPath
-        self.__soundPath = soundPath
-        self.__transcription = transcription
+        self.meaning = meaning
+        self.imagePath = symbolPath
+        self.soundPath = soundPath
+        self.transcription = transcription
 
+class HieroglyphesTest(QtDeclarative.QDeclarativeView):
+    changeTranslate = QtCore.pyqtSignal(str)
+    changeNextDescription = QtCore.pyqtSignal(str)
+    updateSymbolUrl = QtCore.pyqtSignal(str)
+    changeTranscription = QtCore.pyqtSignal(str)
 
-    def getHieroglyphImage(self):
-        return QPixmap(self.__imagePath)
-
-    def getMeaning(self):
-        return self.__meaning
-    
-    def getTranscription(self):
-        return self.__transcription
-
-    def getSoundPath(self):
-        return self.__soundPath
-
-class HieroglyphesTest(QWidget):
     def __init__(self, startedWith, config='dictionary.xml'):
-        super(HieroglyphesTest, self).__init__(None)
+        QtDeclarative.QDeclarativeView.__init__(self, None)
 
         location = os.path.realpath( os.path.join(os.getcwd(), os.path.dirname(__file__)) )
         tree = ElementTree.parse(location + '/' + config)
@@ -55,36 +46,26 @@ class HieroglyphesTest(QWidget):
             self.__randomInsert__( self.__dictionary, HieroglyphCard(ideogram.get('meaning'), \
                                                                      ideogram.get('transcription'), \
                                                                      dirPathImg + ideogram.get('symbolFile'), \
-                                                                     dirPathSounds + ideogram.get('soundFile')) )          
-
+                                                                     dirPathSounds + ideogram.get('soundFile')) )
         self.__count = 0;
         self.__numberOfHieroglyphes = len(self.__dictionary)
         self.__currentCard = self.__dictionary.pop()
+        self.__playSound = False
 
-        self.__imageLabel = QLabel()
-        self.__imageLabel.setAlignment(QtCore.Qt.AlignCenter)
-        
-        self.__meaningLabel = QLabel()
+        self.setSource(QtCore.QUrl.fromLocalFile('hieroglyphesView.qml'))
+        self.setResizeMode(QtDeclarative.QDeclarativeView.SizeRootObjectToView)
 
-        self.__soundButton = QPushButton('X')
-        self.__soundButton.clicked.connect(self.onSound)
-        self.__soundButton.setShortcut('s')
+        viewRootObject = self.rootObject()
 
-        self.__nextButton = QPushButton(self.__currentButtonText())
-        self.__nextButton.clicked.connect(self.onNext)
-        self.__nextButton.setShortcut('n')
+        viewRootObject.pushNext.connect(self.onNext)
+        viewRootObject.pushSound.connect(self.onSound)
 
-        layout = QGridLayout()
-        topMostLayout = QGridLayout()
+        self.changeTranslate.connect(viewRootObject.updateTranslate)
+        self.changeNextDescription.connect(viewRootObject.updateNextButtonText)
+        self.updateSymbolUrl.connect(viewRootObject.updateSymbolImage)
+        self.changeTranscription.connect(viewRootObject.updateTranscription)
 
-        topMostLayout.addWidget(self.__meaningLabel, 0, 1, alignment = QtCore.Qt.AlignLeft)
-        topMostLayout.addWidget(self.__soundButton, 0, 2, alignment = QtCore.Qt.AlignRight)
-        layout.addLayout(topMostLayout, 0, 1, alignment = QtCore.Qt.AlignTop)
-        layout.addWidget(self.__imageLabel, 1, 1, alignment = QtCore.Qt.AlignVCenter)
-        layout.addWidget(self.__nextButton, 2, 1, alignment = QtCore.Qt.AlignBottom)
-
-        self.setLayout(layout)
-        self.resize(500, 400)
+        self.onNext()
 
     def __currentButtonText(self):
         return "[{0}/{1}] Next >".format(self.__count, self.__numberOfHieroglyphes)
@@ -93,24 +74,24 @@ class HieroglyphesTest(QWidget):
         lst.insert(randrange(len(lst)+1), item)    
 
     def __changeMeaning(self):
-        self.__meaningLabel.setText(self.__currentCard.getMeaning())
+        self.changeTranslate.emit(self.__currentCard.meaning)
 
     def __changeImage(self):
-        self.__imageLabel.setPixmap(self.__currentCard.getHieroglyphImage())
+        self.updateSymbolUrl.emit(self.__currentCard.imagePath)
 
     def __changeSound(self):
-        self.__soundButton.setText(self.__currentCard.getTranscription())
-        self.__soundButton.setShortcut('s')
-        self.__currentSoundPath = self.__currentCard.getSoundPath()
+        self.changeTranscription.emit(self.__currentCard.transcription)
+        self.__currentSoundPath = self.__currentCard.soundPath
+        self.__playSound = True
 
     def onNext(self):
         if self.__state == 0:
             self.__count = self.__count + 1
-            self.__nextButton.setText(self.__currentButtonText())
-            self.__nextButton.setShortcut('n')
-            self.__meaningLabel.clear()
-            self.__imageLabel.clear()
-            self.__soundButton.setText('X')
+            self.changeNextDescription.emit(self.__currentButtonText())
+            self.changeTranslate.emit('')
+            self.updateSymbolUrl.emit('')
+            self.changeTranscription.emit('X')
+            self.__playSound = False
 
             self.__doFirst()
         
@@ -125,7 +106,7 @@ class HieroglyphesTest(QWidget):
         self.__state = (self.__state + 1)%2
 
     def onSound(self):
-        if self.__soundButton.text() != 'X':
+        if self.__playSound:
             subprocess.call(["aplay", self.__currentSoundPath])
 
 if __name__ == '__main__': 
