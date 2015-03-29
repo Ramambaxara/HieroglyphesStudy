@@ -58,8 +58,8 @@ Rectangle {
 
     Image {
         id: tstImg
-        width: 400; height: 500
-        y: 20
+        width: 300; height: 400
+        y: 60
         anchors.horizontalCenter: page.horizontalCenter
         fillMode: Image.PreserveAspectFit
     }
